@@ -13,6 +13,15 @@ import calendar
 from scipy import stats
 
 st.title("NHSH MRI QA Data Dashboard: Daily QA Overview")
+
+option = st.selectbox(
+    "Choose a scanner",
+    ("MRI 1", "MRI 2"),
+)
+
+SigDeg = st.checkbox("Only show regression results which are degrading over time (significant negative slope)")
+
+
 st.cache_data.clear()
 st.cache_resource.clear()
 conn = st.connection("gsheets", type=GSheetsConnection,ttl=1)
@@ -20,15 +29,26 @@ conn = st.connection("gsheets", type=GSheetsConnection,ttl=1)
 df = conn.read(worksheet="DailyQA")
 df = df.fillna(value="No Data")
 df = df.drop_duplicates(keep='last')
+df = df[df["Scanner"] == option]
+df["Date"] = pd.to_datetime(df["Date"], errors='coerce',dayfirst=True, format="%Y-%m-%d %H-%M-%S")
 
-st.header("Head Daily QA")
+dStart = st.date_input("Show data from this date", value=df["Date"].min(),format="DD-MM-YYYY")
+dEnd = st.date_input("Show data to this date", value=datetime.date.today(),format="DD-MM-YYYY")
+df = df[(df["Date"] >= pd.to_datetime(dStart)) & (df["Date"] <= pd.to_datetime(dEnd))]
+
 
 def MakePlots(Seq,df,Title,NumberOfSlices):
     st.subheader(Title)
 
     # Filter DataFrame for the specified sequence
     df_Filtered  = df[df["Sequence"] == Seq]
-    df_Filtered["Date"] = pd.to_datetime(df_Filtered["Date"], errors='coerce',dayfirst=True, format="%Y-%m-%d %H-%M-%S")
+    if len(df_Filtered) == 0:
+        st.markdown(f""" 
+        - No Daily QA data found for sequence {Seq}.  
+        """, unsafe_allow_html=True)
+        return
+
+    #df_Filtered["Date"] = pd.to_datetime(df_Filtered["Date"], errors='coerce',dayfirst=True, format="%Y-%m-%d %H-%M-%S")
     df_Filtered["SNR Avg"] = pd.to_numeric(df_Filtered["SNR Avg"], errors='coerce')
     df_Filtered["Date_numeric"] = (df_Filtered["Date"] - df_Filtered["Date"].min()).dt.days
 
@@ -67,8 +87,19 @@ def MakePlots(Seq,df,Title,NumberOfSlices):
     df_regression = pd.DataFrame(results).set_index("metric")
     st.subheader("Regression results")
     cols_to_display = ["slope", "95% Confidence Lower", "95% Confidence Upper", "pvalue", "n"]
-    st.dataframe(df_regression[cols_to_display], use_container_width=True, height=150)
+
+    def color_coding(row):
+        return ['background-color:red'] * len(
+            row) if row.pvalue <=0.05 and row.slope<0 else ['background-color:green'] * len(row)
+
     metrics = df_regression.index.tolist()
+    if SigDeg:
+        df_regression = df_regression[df_regression["pvalue"] <= 0.05]
+        df_regression = df_regression[df_regression["slope"] < 0]
+    st.dataframe(df_regression[cols_to_display].style.apply(color_coding, axis=1), use_container_width=True, height=150)
+
+
+    
     selected = st.selectbox("Select metric to plot", metrics, key=f"select_{Seq}")
 
     if selected:
@@ -88,5 +119,18 @@ def MakePlots(Seq,df,Title,NumberOfSlices):
 
         st.plotly_chart(fig_T2)
 
+st.header("Head Daily QA")
 MakePlots("Ax T2 FSE head",df[df['QA Type'] == 'DQA_Head'], "Head Daily QA - T2 Sequence", 5)
-MakePlots("Ax EPI-GRE head",df[df['QA Type'] == 'DQA_Head'], "Head Daily QA - EPI Sequence", 5)
+MakePlots("Ax EPI-GRE head",df[df['QA Type'] == 'DQA_Head'], "Head Daily QA - EPI Sequence", 14)
+
+st.header("Body Daily QA")
+MakePlots("Ax T2 SSFSE TE 90 Top",df[df['QA Type'] == 'DQA_Body'], "Top Body Daily QA - T2 Sequence", 12) 
+MakePlots("Ax T2 SSFSE TE 90 Bot",df[df['QA Type'] == 'DQA_Body'], "Bot Body Daily QA - T2 Sequence", 12) 
+MakePlots("Ax EPI-GRE body Top",df[df['QA Type'] == 'DQA_Body'], "Top Body Daily QA - EPI Sequence", 13) 
+MakePlots("Ax EPI-GRE body Bot",df[df['QA Type'] == 'DQA_Body'], "Bot Body Daily QA - EIP Sequence", 13) 
+
+st.header("Spine Daily QA")
+MakePlots("Ax T2 SSFSE TE 90 Top",df[df['QA Type'] == 'DQA_Spine'], "Top Spine Daily QA - T2 Sequence", 12) 
+MakePlots("Ax T2 SSFSE TE 90 Bot",df[df['QA Type'] == 'DQA_Spine'], "Bot Spine Daily QA - T2 Sequence", 12) 
+MakePlots("Ax EPI-GRE body Top",df[df['QA Type'] == 'DQA_Spine'], "Top Spine Daily QA - EPI Sequence", 12) 
+MakePlots("Ax EPI-GRE body Bot",df[df['QA Type'] == 'DQA_Spine'], "Bot Spine Daily QA - EPI Sequence", 12) 
