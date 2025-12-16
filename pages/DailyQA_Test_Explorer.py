@@ -49,9 +49,10 @@ for index, row in df.iterrows():
 events = []
 for Date in Rows:
     Event = {
-        "title": "DQA",
-        "start": Date,
-        "end": Date,
+        "title": Rows[Date][0]['Scanner'] + " - " + Rows[Date][0]['QA Type'].split("_")[1],
+        "start": datetime.datetime.strptime(Date, "%Y-%m-%d %H-%M-%S").strftime("%Y-%m-%d"),
+        "end": datetime.datetime.strptime(Date, "%Y-%m-%d %H-%M-%S").strftime("%Y-%m-%d"),
+        "color": "#FF6C6C",
     }
     events.append(Event)
 
@@ -90,7 +91,9 @@ state = calendar(
 if state.get("eventsSet") is not None:
     st.session_state["events"] = state["eventsSet"]
 
-st.write(state)
+SelectedDate = None
+if state["callback"] == "dateClick":
+    SelectedDate = state["dateClick"]["date"]
 
-st.markdown("## API reference")
-st.help(calendar)
+if SelectedDate is not None:
+    SelectedDate = datetime.datetime.fromisoformat(SelectedDate[:-1])
