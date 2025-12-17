@@ -11,7 +11,7 @@ from datetime import date, timedelta
 import calendar
 st.set_page_config(initial_sidebar_state='auto',page_title="NHSH MRI QA Data Dashboard")
 
-st.title("NHSH MRI QA Data Dashboard Test")
+st.title("NHSH MRI QA Data Dashboard")
 st.markdown("""
 """)
 
