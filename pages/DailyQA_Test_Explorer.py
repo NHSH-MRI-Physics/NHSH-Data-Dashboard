@@ -151,6 +151,7 @@ if FoundTest == True:
         - Scanner: {SelectedTest[0]['Scanner']}  
         - QA Type: {SelectedTest[0]['QA Type']}
         - Date Run: {SelectedTest[0]['Date']}
+        - Archive Path: {SelectedTest[0]['Archive']}
         """, unsafe_allow_html=True)
         st.markdown(SeqResults, unsafe_allow_html=True)
     
@@ -171,18 +172,36 @@ if FoundTest == True:
             if SelectedTest[i]['Sequence'] == option:
                 ChosenSequence = SelectedTest[i]
         ChosenSequence = ChosenSequence[ChosenSequence != "No Data"]
-        MaxSlices = int(ChosenSequence.keys()[-1].split()[1])
+        DataEntryCount = (int(ChosenSequence.keys()[-1].split()[1])-int(ChosenSequence.keys()[7].split()[1]))+1
+        MaxSlices = int(DataEntryCount/5)
 
+        #Rename all the stupid headers that i messedup..
+        ROIS = ['M1','M2','M3','M4','M5']
+        ROICounter = 0
+        SliceCounter = 1
+        for i in range(DataEntryCount):
+            df.rename(columns={'Unnamed: '+str(i+7): "Slice " + str(SliceCounter) + " " + ROIS[ROICounter]}, inplace=True)
+            SliceCounter+=1
+            if SliceCounter > MaxSlices:
+                SliceCounter = 1
+                ROICounter += 1
+        RenamedCols = df.columns
+        old_index = list(ChosenSequence.index)
+        new_index = list(RenamedCols)[:len(old_index)]
+        rename_map = {old: new for old, new in zip(old_index, new_index)}
+        ChosenSequence = ChosenSequence.rename(index=rename_map)
+
+        #Find someway to detect if its run on streamlits cloud or not
         OfflineMode = False
-        if OfflineMode== False:
-
+        
+        
+        if OfflineMode== False: #If it is online just show dummy images
             #Build results array
             Results = [None,None,None,None]  #0=SNR,1=ROIResults,2=QAType,3=Sequence
             Results[0] = ChosenSequence['SNR Avg']
             Results[2] = ChosenSequence['QA Type'].split("_")[1]
             Results[3] = ChosenSequence['Sequence']
 
-            ROIS = ['M1','M2','M3','M4','M5']
             for roi in ROIS:
                 for i in range(MaxSlices):
                     if Results[1] is None:
@@ -191,50 +210,71 @@ if FoundTest == True:
                         Results[1][roi] = []
                     SliceKey = 'Slice ' + str(i+1) + ' ' + roi
                     Results[1][roi].append(ChosenSequence[SliceKey])
+            #st.write(Results)
+            PF_Result,thresholds,RelResults = DQA_PF.DidQAPassV2(Results,GetStats=True)
 
+      
             import matplotlib.pyplot as plt
             fig, ax = plt.subplots()
+            
             if SelectedTest[0]['QA Type'] == "DQA_Head": #draw a circle
                 circle = plt.Circle((0.5, 0.5), 0.4, color='blue', fill=False, linewidth=2)
                 ax.add_artist(circle)
-
-                x = (0.5, 0.5)
                 width = 0.15
-                Square1 = plt.Rectangle((x[0]-width/2.0, x[1]-width/2.0), width, width, color='green', fill=False, linewidth=2)
-                ax.add_artist(Square1)
-                plt.text(x[0],x[1], '1', fontsize=22, va='center', ha='center',color='green')
-                plt.text(x[0], x[1]+0.1, str(round(ChosenSequence['Slice ' + str(st.session_state.current_slice) + ' M1'],2)), fontsize=11, va='center', ha='center',color='green')
+                Positions = []
+                Positions.append((0.5, 0.5))  #M1
+                Positions.append((0.7, 0.35)) #M2
+                Positions.append((0.3, 0.65)) #M3
+                Positions.append((0.7, 0.65)) #M4
+                Positions.append((0.3, 0.35)) #M5
+                ExcludedSlices = DQA_PF.GetExcludedSlices("head")
+            else:
+                Rect = plt.Rectangle((0.1, 0.2), 0.8, 0.6, color='blue', fill=False, linewidth=2)
+                ax.add_artist(Rect)
+                width = 0.15
+                Positions = []
+                Positions.append((0.5, 0.5))  #M1
+                Positions.append((0.7, 0.35)) #M2
+                Positions.append((0.3, 0.65)) #M3
+                Positions.append((0.7, 0.65)) #M4
+                Positions.append((0.3, 0.35)) #M5
+                ExcludedSlices = DQA_PF.GetExcludedSlices("body")
+                if SelectedTest[0]['QA Type'] == "DQA_Spine":
+                    ExcludedSlices = DQA_PF.GetExcludedSlices("spine")
 
-                x = (0.7, 0.35)
-                Square2 = plt.Rectangle((x[0]-width/2.0, x[1]-width/2.0), width, width, color='green', fill=False, linewidth=2)
-                ax.add_artist(Square2)
-                plt.text(x[0], x[1], '2', fontsize=22, va='center', ha='center',color='green')
-                plt.text(x[0], x[1]+0.1, str(round(ChosenSequence['Slice ' + str(st.session_state.current_slice) + ' M2'],2)), fontsize=11, va='center', ha='center',color='green')
-
-                x = (0.3, 0.65)
-                Square3 = plt.Rectangle((x[0]-width/2.0, x[1]-width/2.0), width, width, color='green', fill=False, linewidth=2)
-                ax.add_artist(Square3)
-                plt.text(x[0], x[1], '3', fontsize=22, va='center', ha='center',color='green')
-                plt.text(x[0], x[1]+0.1, str(round(ChosenSequence['Slice ' + str(st.session_state.current_slice) + ' M3'],2)), fontsize=11, va='center', ha='center',color='green')
-
-                x = (0.7, 0.65)
-                Square4 = plt.Rectangle((x[0]-width/2.0, x[1]-width/2.0), width, width, color='green', fill=False, linewidth=2)
-                ax.add_artist(Square4)
-                plt.text(x[0], x[1], '4', fontsize=22, va='center', ha='center',color='green')
-                plt.text(x[0], x[1]+0.1, str(round(ChosenSequence['Slice ' + str(st.session_state.current_slice) + ' M4'],2)), fontsize=11, va='center', ha='center',color='green')
-
-                x = (0.3, 0.35)
-                Square5 = plt.Rectangle((x[0]-width/2.0, x[1]-width/2.0), width, width, color='green', fill=False, linewidth=2)
-                ax.add_artist(Square5)
-                plt.text(x[0], x[1], '5', fontsize=22, va='center', ha='center',color='green')
-                plt.text(x[0], x[1]+0.1, str(round(ChosenSequence['Slice ' + str(st.session_state.current_slice) + ' M5'],2)), fontsize=11, va='center', ha='center',color='green')
+            SkipSlice = False
+            
+            if ChosenSequence['Sequence'] in ExcludedSlices.keys():
+                if (st.session_state.current_slice-1) in ExcludedSlices[ChosenSequence['Sequence']]:
+                    SkipSlice = True
+            
+            if SkipSlice == False:
+                for i in range(len(Positions)):
+                    x = Positions[i]
+                    SNRResult = RelResults[st.session_state.current_slice-1][ROIS[i]][0]
+                    PF_Result = RelResults[st.session_state.current_slice-1][ROIS[i]][1]
+                    color = 'green'
+                    if PF_Result == False:
+                        color = 'red'
+                    plt.text(x[0], x[1]+0.1, str(round(SNRResult,4)), fontsize=11, va='center', ha='center',color=color)
+                    Square = plt.Rectangle((x[0]-width/2.0, x[1]-width/2.0), width, width, color=color, fill=False, linewidth=2)
+                    ax.add_artist(Square)
+                    plt.text(x[0],x[1], str(i+1), fontsize=22, va='center', ha='center',color=color)
 
                 ax.set_xlim(0, 1)
                 ax.set_ylim(0, 1)
+        else: #If we are offline then just display the image, this can be done from the DICOM or by cropping the image see how it goes...
+            pass
+
+           
+
 
         ax.set_axis_off()
         ax.set_aspect('equal', adjustable='box')
-        ax.set_title('Slice ' + str(st.session_state.current_slice))
+        title ='Slice ' + str(st.session_state.current_slice)
+        if SkipSlice == True:
+            title += "\n(Excluded Slice)"
+        ax.set_title(title)
         st.pyplot(fig) # instead of plt.show()
         button_col1, button_spacer, button_col2 = st.columns([1, 1.6, 1])
         with button_col1:
@@ -252,4 +292,4 @@ if FoundTest == True:
                     st.session_state.current_slice = 1
                 st.rerun()
 
-
+        st.button("Tag as poor set up",disabled=True)

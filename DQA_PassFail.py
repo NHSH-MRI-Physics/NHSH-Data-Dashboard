@@ -32,9 +32,9 @@ def GetThresholds(type):
     return Threshes
 
 def DidQAPassV2(Result,thresh=None, GetStats=False):
-    urllib.request.urlretrieve("https://github.com/NHSH-MRI-Physics/DailyQA/raw/refs/heads/main/BaselineData/Head/ROI_Head_Baseline.npy", "Head_baseline.npy")
-    urllib.request.urlretrieve("https://github.com/NHSH-MRI-Physics/DailyQA/raw/refs/heads/main/BaselineData/Body/Global_Body_Baseline.npy", "Body_baseline.npy")
-    urllib.request.urlretrieve("https://github.com/NHSH-MRI-Physics/DailyQA/raw/refs/heads/main/BaselineData/Spine/ROI_Spine_Baseline.npy", "Spine_baseline.npy")
+    urllib.request.urlretrieve("https://github.com/NHSH-MRI-Physics/DailyQA/raw/refs/heads/main/BaselineData/Head/ROI_Head_Baseline.npy", "ROI_Head_Baseline.npy")
+    urllib.request.urlretrieve("https://github.com/NHSH-MRI-Physics/DailyQA/raw/refs/heads/main/BaselineData/Body/ROI_Body_Baseline.npy", "ROI_Body_Baseline.npy")
+    urllib.request.urlretrieve("https://github.com/NHSH-MRI-Physics/DailyQA/raw/refs/heads/main/BaselineData/Spine/ROI_Spine_Baseline.npy", "ROI_Spine_Baseline.npy")
 
     QAType = Result[2]
     SNR = Result[0]
@@ -50,13 +50,13 @@ def DidQAPassV2(Result,thresh=None, GetStats=False):
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
     if QAType=="Head":
-        ROIBaseline = np.load(os.path.join(dir_path,"..","BaselineData","Head","ROI_Head_Baseline.npy"),allow_pickle=True).item()[Sequence]
+        ROIBaseline = np.load("ROI_Head_Baseline.npy",allow_pickle=True).item()[Sequence]
 
     if QAType=="Body":
-        ROIBaseline = np.load(os.path.join(dir_path,"..","BaselineData","Body","ROI_Body_Baseline.npy"),allow_pickle=True).item()[Sequence]
+        ROIBaseline = np.load("ROI_Body_Baseline.npy",allow_pickle=True).item()[Sequence]
 
     if QAType=="Spine":
-        ROIBaseline = np.load(os.path.join(dir_path,"..","BaselineData","Spine","ROI_Spine_Baseline.npy"),allow_pickle=True).item()[Sequence]
+        ROIBaseline = np.load("ROI_Spine_Baseline.npy",allow_pickle=True).item()[Sequence]
     
     
 
