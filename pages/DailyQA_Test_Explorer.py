@@ -13,6 +13,7 @@ import calendar
 from scipy import stats
 from dataclasses import dataclass
 from streamlit_calendar import calendar
+import DQA_PassFail as DQA_PF
 
 st.title("NHSH MRI QA Data Dashboard: Daily QA Test Explorer")
 if "current_slice" not in st.session_state:
@@ -174,6 +175,23 @@ if FoundTest == True:
 
         OfflineMode = False
         if OfflineMode== False:
+
+            #Build results array
+            Results = [None,None,None,None]  #0=SNR,1=ROIResults,2=QAType,3=Sequence
+            Results[0] = ChosenSequence['SNR Avg']
+            Results[2] = ChosenSequence['QA Type'].split("_")[1]
+            Results[3] = ChosenSequence['Sequence']
+
+            ROIS = ['M1','M2','M3','M4','M5']
+            for roi in ROIS:
+                for i in range(MaxSlices):
+                    if Results[1] is None:
+                        Results[1] = {}
+                    if roi not in Results[1]:
+                        Results[1][roi] = []
+                    SliceKey = 'Slice ' + str(i+1) + ' ' + roi
+                    Results[1][roi].append(ChosenSequence[SliceKey])
+
             import matplotlib.pyplot as plt
             fig, ax = plt.subplots()
             if SelectedTest[0]['QA Type'] == "DQA_Head": #draw a circle
@@ -235,13 +253,3 @@ if FoundTest == True:
                 st.rerun()
 
 
-        import urllib.request
-        urllib.request.urlretrieve("https://github.com/NHSH-MRI-Physics/DailyQA/raw/refs/heads/main/BaselineData/Head/ROI_Head_Baseline.npy", "test.npy")
-        import numpy as np  
-        import os
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        ROIBaseline = np.load("test.npy",allow_pickle=True).item()
-        st.write(ROIBaseline)
-        urllib.request.urlretrieve("https://github.com/NHSH-MRI-Physics/DailyQA/raw/refs/heads/main/DQA_Scripts/Thresholds.txt", "test.txt")
-        f = open("test.txt")
-        st.write(f.read())
