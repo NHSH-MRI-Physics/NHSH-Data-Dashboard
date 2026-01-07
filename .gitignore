@@ -1,3 +1,8 @@
 /.streamlit
 /NHSHDataDash
 /.NHSHDash
+ROI_Body_Baseline.npy
+ROI_Head_Baseline.npy
+ROI_Spine_Baseline.npy
+SlicesToExclude.txt
+Thresholds.txt
