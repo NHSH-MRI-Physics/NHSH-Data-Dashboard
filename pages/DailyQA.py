@@ -35,6 +35,7 @@ df["Date"] = pd.to_datetime(df["Date"], errors='coerce',dayfirst=True, format="%
 dStart = st.date_input("Show data from this date", value=df["Date"].min(),format="DD-MM-YYYY")
 dEnd = st.date_input("Show data to this date", value=datetime.date.today(),format="DD-MM-YYYY")
 df = df[(df["Date"] >= pd.to_datetime(dStart)) & (df["Date"] <= pd.to_datetime(dEnd))]
+#st.write(df)
 
 
 def MakePlots(Seq,df,Title,NumberOfSlices):
@@ -47,6 +48,22 @@ def MakePlots(Seq,df,Title,NumberOfSlices):
         - No Daily QA data found for sequence {Seq}.  
         """, unsafe_allow_html=True)
         return
+    
+    # Fix the headers that i messed up...
+    first_row = df_Filtered.iloc[0]
+    data_Count = (first_row != "No Data").sum()-7
+    Slices =  int(data_Count/5.0)
+
+    ROIS = ["M1","M2","M3","M4","M5"]
+    ROICounter = 0
+    SliceCounter = 1
+    for i in range(data_Count):
+        df_Filtered.rename(columns={'Unnamed: '+str(i+7): "Slice " + str(SliceCounter) + " " + ROIS[ROICounter]}, inplace=True)
+        SliceCounter+=1
+        if SliceCounter > Slices:
+            SliceCounter = 1
+            ROICounter += 1
+    #st.write(df_Filtered)
 
     #df_Filtered["Date"] = pd.to_datetime(df_Filtered["Date"], errors='coerce',dayfirst=True, format="%Y-%m-%d %H-%M-%S")
     df_Filtered["SNR Avg"] = pd.to_numeric(df_Filtered["SNR Avg"], errors='coerce')

@@ -90,6 +90,9 @@ def GetScannerStatus(ScannerName):
     def LastQADate():
         year = date.today().year
         month = date.today().month-1
+        if month == 0:
+            month = 12
+            year -= 1
         last_day = date(year, month, calendar.monthrange(year, month)[1])
         while last_day.weekday() != 3:  # Thursday == 3 (Mon=0)
             last_day -= timedelta(days=1)

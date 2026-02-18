@@ -4,3 +4,5 @@ streamlit
 plotly
 scipy
 xmltodict
+matplotlib
+streamlit_calendar 
