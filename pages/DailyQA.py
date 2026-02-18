@@ -22,9 +22,9 @@ option = st.selectbox(
 SigDeg = st.checkbox("Only show regression results which are degrading over time (significant negative slope)")
 
 
-st.cache_data.clear()
-st.cache_resource.clear()
-conn = st.connection("gsheets", type=GSheetsConnection,ttl=1)
+#st.cache_data.clear()
+#st.cache_resource.clear()
+conn = st.connection("gsheets", type=GSheetsConnection,ttl=360)
 
 df = conn.read(worksheet="DailyQA")
 df = df.fillna(value="No Data")
@@ -68,8 +68,9 @@ def MakePlots(Seq,df,Title,NumberOfSlices):
             return {
                 "metric": name,
                 "slope": res.slope,
-                "95% Confidence Lower": ci_lower,
-                "95% Confidence Upper": ci_upper,
+                "95% Confidence Range": t_crit * res.stderr,
+                #"95% Confidence Lower": ci_lower,
+                #"95% Confidence Upper": ci_upper,
                 "intercept": res.intercept,
                 "rvalue": res.rvalue,
                 "pvalue": res.pvalue,
@@ -77,7 +78,8 @@ def MakePlots(Seq,df,Title,NumberOfSlices):
                 "n": n,
             }
         else:
-            return {"metric": name, "slope": None, "95% Confidence Lower": None, "95% Confidence Upper": None, "intercept": None, "rvalue": None, "pvalue": None, "stderr": None, "n": n}
+            #return {"metric": name, "slope": None, "95% Confidence Lower": None, "95% Confidence Upper": None, "intercept": None, "rvalue": None, "pvalue": None, "stderr": None, "n": n}
+            return {"metric": name, "slope": None, "95% Confidence Range": None, "intercept": None, "rvalue": None, "pvalue": None, "stderr": None, "n": n}
 
     results = []
     results.append(_regress("SNR Avg", df_Filtered["SNR Avg"]))
@@ -86,7 +88,8 @@ def MakePlots(Seq,df,Title,NumberOfSlices):
 
     df_regression = pd.DataFrame(results).set_index("metric")
     st.subheader("Regression results")
-    cols_to_display = ["slope", "95% Confidence Lower", "95% Confidence Upper", "pvalue", "n"]
+    #cols_to_display = ["slope", "95% Confidence Lower", "95% Confidence Upper", "pvalue", "n"]
+    cols_to_display = ["slope", "95% Confidence Range", "pvalue", "n"]
 
     def color_coding(row):
         return ['background-color:red'] * len(
@@ -123,11 +126,15 @@ st.header("Head Daily QA")
 MakePlots("Ax T2 FSE head",df[df['QA Type'] == 'DQA_Head'], "Head Daily QA - T2 Sequence", 5)
 MakePlots("Ax EPI-GRE head",df[df['QA Type'] == 'DQA_Head'], "Head Daily QA - EPI Sequence", 14)
 
+st.divider()
+
 st.header("Body Daily QA")
 MakePlots("Ax T2 SSFSE TE 90 Top",df[df['QA Type'] == 'DQA_Body'], "Top Body Daily QA - T2 Sequence", 12) 
 MakePlots("Ax T2 SSFSE TE 90 Bot",df[df['QA Type'] == 'DQA_Body'], "Bot Body Daily QA - T2 Sequence", 12) 
 MakePlots("Ax EPI-GRE body Top",df[df['QA Type'] == 'DQA_Body'], "Top Body Daily QA - EPI Sequence", 13) 
 MakePlots("Ax EPI-GRE body Bot",df[df['QA Type'] == 'DQA_Body'], "Bot Body Daily QA - EIP Sequence", 13) 
+
+st.divider()
 
 st.header("Spine Daily QA")
 MakePlots("Ax T2 SSFSE TE 90 Top",df[df['QA Type'] == 'DQA_Spine'], "Top Spine Daily QA - T2 Sequence", 12) 
